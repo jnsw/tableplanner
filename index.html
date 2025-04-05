@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tischplaner</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Tischplaner</h1>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="roomWidth">Raumbreite (Meter):</label>
+                <input type="number" id="roomWidth" min="5" max="30" value="10" step="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="roomHeight">Raumhöhe (Meter):</label>
+                <input type="number" id="roomHeight" min="5" max="30" value="10" step="0.5">
+            </div>
+            
+            <div class="control-group">
+                <label for="tableCount">Anzahl der Tische:</label>
+                <input type="number" id="tableCount" min="1" max="20" value="10">
+            </div>
+            
+            <div class="control-group">
+                <label for="tableSize">Tischgröße (Meter):</label>
+                <input type="number" id="tableSize" min="0.5" max="3" value="1.2" step="0.1">
+            </div>
+            
+            <div class="control-group">
+                <label for="guestList">Gästeliste (kommagetrennt):</label>
+                <textarea id="guestList" placeholder="Max Mustermann, Erika Musterfrau, ..."></textarea>
+            </div>
+        </div>
+        
+        <div class="action-buttons">
+            <button id="createRoom">Raum erstellen</button>
+            <button id="autoArrange">Automatisch anordnen</button>
+            <button id="addGuests">Gäste hinzufügen</button>
+            <button id="clearGuests">Gäste zurücksetzen</button>
+            <button id="saveLayout">Layout speichern</button>
+            <button id="loadLayout">Layout laden</button>
+            <button id="exportJSON">Exportieren</button>
+            <button id="importJSON">Importieren</button>
+        </div>
+        
+        <div class="last-sync">Last synced: Never</div>
+        <div id="room" style="width: 600px; height: 600px;"></div>
+        
+        <div class="unassigned-guests">
+            <h3>Nicht zugewiesene Gäste</h3>
+            <div id="unassignedGuestsList" class="guest-list"></div>
+        </div>
+
+        <div id="seatingArrangement" class="seating-arrangement">
+            <h3>Sitzplan</h3>
+            <div id="seatingList"></div>
+        </div>
+        
+        <div class="info-panel">
+            <p><strong>Bedienung:</strong></p>
+            <ul>
+                <li>Tische können per Drag & Drop im Raum verschoben werden</li>
+                <li>Klicken Sie auf einen nicht zugewiesenen Gast und dann auf einen Tisch, um ihn zuzuweisen</li>
+                <li>Klicken Sie auf einen zugewiesenen Gast, um ihn zu entfernen</li>
+                <li>Nutzen Sie die Buttons für automatische Anordnung oder um das Layout zu speichern/laden</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
