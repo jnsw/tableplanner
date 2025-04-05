@@ -70,6 +70,22 @@ button:hover {
     background-color: #2980b9;
 }
 
+.guest-input-container {
+    margin: 20px auto;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-width: 600px;
+}
+
+.guest-input-container button {
+    align-self: flex-end;
+    width: auto;
+}
+
 .action-buttons {
     display: flex;
     flex-wrap: wrap;

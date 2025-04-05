@@ -51,6 +51,11 @@ document.addEventListener('DOMContentLoaded', function() {
     exportJSONButton.addEventListener('click', exportToJSON);
     importJSONButton.addEventListener('click', importFromJSON);
     
+    // Live updates for room dimensions
+    roomWidthInput.addEventListener('input', updateRoomDimensions);
+    roomHeightInput.addEventListener('input', updateRoomDimensions);
+    tableSizeInput.addEventListener('input', updateTableSize);
+    
     // Hilfsfunktionen
     function setupRoom() {
         // Raumgrößen-Einstellungen lesen
@@ -374,6 +379,65 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Live update der Raumdimensionen
+    function updateRoomDimensions() {
+        roomWidth = parseFloat(roomWidthInput.value) || 10;
+        roomHeight = parseFloat(roomHeightInput.value) || 10;
+        
+        // Raum-Element aktualisieren
+        const roomPixelWidth = roomWidth * pixelsPerMeter;
+        const roomPixelHeight = roomHeight * pixelsPerMeter;
+        roomElement.style.width = roomPixelWidth + 'px';
+        roomElement.style.height = roomPixelHeight + 'px';
+        
+        // Tische anpassen, damit sie innerhalb der neuen Grenzen bleiben
+        adjustTablesToFitRoom();
+        
+        // Auto-save nach Änderung
+        scheduleAutoSave();
+    }
+    
+    // Live update der Tischgröße
+    function updateTableSize() {
+        tableSize = parseFloat(tableSizeInput.value) || 1.2;
+        const tableSizePixels = tableSize * pixelsPerMeter;
+        
+        // Größe aller Tische aktualisieren
+        tables.forEach(table => {
+            table.size = tableSizePixels;
+            table.element.style.width = tableSizePixels + 'px';
+            table.element.style.height = tableSizePixels + 'px';
+            updateGuestsPositions(table.id);
+        });
+        
+        // Auto-save nach Änderung
+        scheduleAutoSave();
+    }
+    
+    // Tische innerhalb der neuen Raumgrenzen anpassen
+    function adjustTablesToFitRoom() {
+        const roomPixelWidth = roomWidth * pixelsPerMeter;
+        const roomPixelHeight = roomHeight * pixelsPerMeter;
+        
+        tables.forEach(table => {
+            const maxX = roomPixelWidth - table.size - 40;
+            const maxY = roomPixelHeight - table.size - 40;
+            
+            // Tischposition anpassen
+            let newX = Math.min(table.x, maxX);
+            let newY = Math.min(table.y, maxY);
+            
+            // Positionen aktualisieren, aber nur wenn nötig
+            if (newX !== table.x || newY !== table.y) {
+                table.x = newX;
+                table.y = newY;
+                table.element.style.left = newX + 'px';
+                table.element.style.top = newY + 'px';
+                updateGuestsPositions(table.id);
+            }
+        });
+    }
+
     function autoArrangeTables() {
         const roomPixelWidth = roomWidth * pixelsPerMeter;
         const roomPixelHeight = roomHeight * pixelsPerMeter;
@@ -388,8 +452,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const spaceBetween = (availableWidth - tablesPerRow * tableSizePixels) / (tablesPerRow - 1 || 1);
         
-        // Tische anordnen
+        // Tische anordnen, nur nicht-gesperrte Tische verschieben
         tables.forEach((table, index) => {
+            // Wenn der Tisch gesperrt ist, nicht verschieben
+            if (table.element.dataset.locked === 'true') {
+                return;
+            }
+            
             const row = Math.floor(index / tablesPerRow);
             const col = index % tablesPerRow;
             
@@ -458,6 +527,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Dann alle neu rendern
         const guestCount = table.guests.length;
         const tableSizePixels = table.size;
+        const roomPixelWidth = roomWidth * pixelsPerMeter;
+        const roomPixelHeight = roomHeight * pixelsPerMeter;
         const tableCenter = {
             x: table.x + tableSizePixels / 2,
             y: table.y + tableSizePixels / 2
@@ -469,8 +540,13 @@ document.addEventListener('DOMContentLoaded', function() {
         table.guests.forEach((guest, idx) => {
             // Position um den Tisch herum berechnen
             const angle = (idx / guestCount) * 2 * Math.PI;
-            const x = tableCenter.x + Math.cos(angle) * guestRadius - guestSize / 2;
-            const y = tableCenter.y + Math.sin(angle) * guestRadius - guestSize / 2;
+            let x = tableCenter.x + Math.cos(angle) * guestRadius - guestSize / 2;
+            let y = tableCenter.y + Math.sin(angle) * guestRadius - guestSize / 2;
+            
+            // Sicherstellen, dass Gäste innerhalb des Raums bleiben
+            const padding = 5;
+            x = Math.max(padding, Math.min(x, roomPixelWidth - guestSize - padding));
+            y = Math.max(padding, Math.min(y, roomPixelHeight - guestSize - padding));
             
             // Position speichern
             guest.position = { x, y };
@@ -480,7 +556,7 @@ document.addEventListener('DOMContentLoaded', function() {
             guestElement.className = 'guest';
             guestElement.dataset.name = guest.name;
             guestElement.dataset.table = table.id;
-            guestElement.textContent = getInitials(guest.name, 2); // 3 Buchstaben anzeigen
+            guestElement.textContent = getInitials(guest.name, 2); // 2 Buchstaben anzeigen
             guestElement.style.width = guestSize + 'px';
             guestElement.style.height = guestSize + 'px';
             guestElement.style.left = x + 'px';
