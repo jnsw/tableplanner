@@ -1,3 +1,50 @@
+// Base32 encoding & decoding functions
+function base32Encode(buffer) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let result = '';
+    let bits = 0;
+    let value = 0;
+
+    for (let i = 0; i < buffer.length; i++) {
+        value = (value << 8) | buffer[i];
+        bits += 8;
+
+        while (bits >= 5) {
+            result += alphabet[(value >>> (bits - 5)) & 31];
+            bits -= 5;
+        }
+    }
+
+    if (bits > 0) {
+        result += alphabet[(value << (5 - bits)) & 31];
+    }
+
+    return result;
+}
+
+function base32Decode(base32) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    let bits = 0;
+    let value = 0;
+    let bytes = [];
+
+    for (let i = 0; i < base32.length; i++) {
+        const char = base32.charAt(i).toUpperCase();
+        const index = alphabet.indexOf(char);
+        if (index === -1) continue; // Skip non-alphabet chars
+
+        value = (value << 5) | index;
+        bits += 5;
+
+        if (bits >= 8) {
+            bytes.push((value >>> (bits - 8)) & 0xFF);
+            bits -= 8;
+        }
+    }
+
+    return new Uint8Array(bytes);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // DOM-Elemente
     const workspaceInput = document.getElementById('workspace');
@@ -78,29 +125,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return base32Secret;
     }
 
-    function base32Encode(buffer) {
-        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-        let result = '';
-        let bits = 0;
-        let value = 0;
-
-        for (let i = 0; i < buffer.length; i++) {
-            value = (value << 8) | buffer[i];
-            bits += 8;
-
-            while (bits >= 5) {
-                result += alphabet[(value >>> (bits - 5)) & 31];
-                bits -= 5;
-            }
-        }
-
-        if (bits > 0) {
-            result += alphabet[(value << (5 - bits)) & 31];
-        }
-
-        return result;
-    }
-
     function generateQrCode(workspace, secret) {
         // QR-Code-Container leeren
         const qrcodeContainer = document.getElementById('qrcode');
@@ -142,21 +166,26 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Prüfen, ob der Token gültig ist
-        if (validateToken(token, secret)) {
-            // Secret dauerhaft speichern
-            localStorage.setItem(`tischplaner_${workspace}`, secret);
-            sessionStorage.removeItem(`temp_secret_${workspace}`);
+        validateToken(token, secret).then(isValid => {
+            if (isValid) {
+                // Secret dauerhaft speichern
+                localStorage.setItem(`tischplaner_${workspace}`, secret);
+                sessionStorage.removeItem(`temp_secret_${workspace}`);
 
-            // Erfolg melden und zur Hauptseite weiterleiten
-            showMessage('Workspace erfolgreich eingerichtet! Du wirst weitergeleitet...', false);
+                // Erfolg melden und zur Hauptseite weiterleiten
+                showMessage('Workspace erfolgreich eingerichtet! Du wirst weitergeleitet...', false);
 
-            // Nach 2 Sekunden weiterleiten
-            setTimeout(() => {
-                redirectToMainApp(workspace);
-            }, 2000);
-        } else {
-            showMessage('Ungültiger Code. Bitte überprüfe, ob der Code noch gültig ist.', true);
-        }
+                // Nach 2 Sekunden weiterleiten
+                setTimeout(() => {
+                    redirectToMainApp(workspace);
+                }, 2000);
+            } else {
+                showMessage('Ungültiger Code. Bitte überprüfe, ob der Code noch gültig ist.', true);
+            }
+        }).catch(error => {
+            console.error('Fehler bei der Token-Validierung:', error);
+            showMessage('Fehler bei der Validierung. Bitte versuche es erneut.', true);
+        });
     }
 
     function verifyToken() {
@@ -176,65 +205,88 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Prüfen, ob der Token gültig ist
-        if (validateToken(token, secret)) {
-            // Erfolg melden und zur Hauptseite weiterleiten
-            showMessage('Login erfolgreich! Du wirst weitergeleitet...', false);
+        validateToken(token, secret).then(isValid => {
+            if (isValid) {
+                // Erfolg melden und zur Hauptseite weiterleiten
+                showMessage('Login erfolgreich! Du wirst weitergeleitet...', false);
 
-            // Nach 1 Sekunde weiterleiten
-            setTimeout(() => {
-                redirectToMainApp(workspace);
-            }, 1000);
-        } else {
-            showMessage('Ungültiger Code. Bitte überprüfe, ob der Code noch gültig ist.', true);
-        }
+                // Nach 1 Sekunde weiterleiten
+                setTimeout(() => {
+                    redirectToMainApp(workspace);
+                }, 1000);
+            } else {
+                showMessage('Ungültiger Code. Bitte überprüfe, ob der Code noch gültig ist.', true);
+            }
+        }).catch(error => {
+            console.error('Fehler bei der Token-Validierung:', error);
+            showMessage('Fehler bei der Validierung. Bitte versuche es erneut.', true);
+        });
     }
 
-    function validateToken(token, secret) {
+    async function validateToken(token, secret) {
         try {
             // Aktuelle Zeit in 30-Sekunden-Schritten
             const timeStep = 30;
             const timeCounter = Math.floor(Date.now() / 1000 / timeStep);
 
             // Prüfen für aktuellen Counter und vorherigen (für Zeitversatz)
-            return (
-                checkTotp(secret, timeCounter, token) ||
-                checkTotp(secret, timeCounter - 1, token) ||
-                checkTotp(secret, timeCounter + 1, token)
-            );
+            const results = await Promise.all([
+                generateTOTP(secret, timeCounter),
+                generateTOTP(secret, timeCounter - 1),
+                generateTOTP(secret, timeCounter + 1)
+            ]);
+
+            return results.includes(token);
         } catch (error) {
             console.error('Fehler bei der Token-Validierung:', error);
-            return false;
+            throw error;
         }
     }
 
-    function checkTotp(secret, counter, token) {
-        // HMAC-basierte Einmalkennwort-Berechnung (RFC 6238)
-        const shaObj = new jsSHA("SHA-1", "HEX");
+    async function generateTOTP(secret, counter) {
+        try {
+            // Secret in Bytes umwandeln (Base32-Decoding)
+            const secretBytes = base32Decode(secret);
+            
+            // Counter als 8-Byte-Array
+            const counterBytes = new Uint8Array(8);
+            for (let i = 7; i >= 0; i--) {
+                counterBytes[i] = counter & 0xff;
+                counter = counter >>> 8;
+            }
 
-        // Counter als 8-Byte-Hex-String
-        const counterHex = leftPad(counter.toString(16), 16, '0');
+            // HMAC-SHA1 mit Web Crypto API
+            const key = await window.crypto.subtle.importKey(
+                'raw',
+                secretBytes,
+                { name: 'HMAC', hash: 'SHA-1' },
+                false,
+                ['sign']
+            );
 
-        shaObj.setHMACKey(secret, "HEX");
-        shaObj.update(counterHex);
-        const hmac = shaObj.getHMAC("HEX");
+            const signature = await window.crypto.subtle.sign(
+                'HMAC',
+                key,
+                counterBytes
+            );
 
-        // Dynamisch Abschneiden (RFC 4226)
-        const offset = parseInt(hmac.charAt(hmac.length - 1), 16);
-        const truncatedHash = hmac.substr(offset * 2, 8);
-        const truncatedHashInt = parseInt(truncatedHash, 16) & 0x7fffffff;
+            // Dynamisches Abschneiden (RFC 4226)
+            const hmacResult = new Uint8Array(signature);
+            const offset = hmacResult[hmacResult.length - 1] & 0xf;
+            
+            // 4-Byte Binary Code (siehe RFC 4226 Section 5.4)
+            let code = (hmacResult[offset] & 0x7f) << 24 |
+                      (hmacResult[offset + 1] & 0xff) << 16 |
+                      (hmacResult[offset + 2] & 0xff) << 8 |
+                      (hmacResult[offset + 3] & 0xff);
 
-        // 6-stelligen Code erzeugen
-        const code = (truncatedHashInt % 1000000).toString().padStart(6, '0');
-
-        return code === token;
-    }
-
-    // Hilfsfunktion für Padding
-    function leftPad(str, len, char) {
-        while (str.length < len) {
-            str = char + str;
+            // 6-stelliger Code
+            code = code % 1000000;
+            return code.toString().padStart(6, '0');
+        } catch (error) {
+            console.error('Fehler bei TOTP-Generierung:', error);
+            throw error;
         }
-        return str;
     }
 
     function showMessage(text, isError) {
