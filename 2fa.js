@@ -313,6 +313,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.cookie = `tischplaner_auth=${workspace}; expires=${expirationTime.toUTCString()}; path=/; SameSite=Strict`;
 
         // Zur Hauptseite weiterleiten
-        window.location.href = `tischplaner.html?workspace=${encodeURIComponent(workspace)}`;
+        window.location.href = `index.html?workspace=${encodeURIComponent(workspace)}`;
     }
 });
