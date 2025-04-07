@@ -329,19 +329,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 2000);
     }
     
-    // Automatisch Layout speichern
+    // Automatisches Layout speichern
     function autoSaveLayout() {
         const layout = getLayoutData();
         const layoutJSON = JSON.stringify(layout);
         
         // Speichern im localStorage
-        localStorage.setItem('tableLayout', layoutJSON);
+        const workspace = getCurrentWorkspace();
+        localStorage.setItem(`tableLayout_${workspace}`, layoutJSON);
         
         // Timestamp aktualisieren
         updateSyncTimestamp();
         
         // Console Log
-        console.log('Layout auto-saved:', layout);
+        console.log(`Layout auto-saved for workspace: ${workspace}`, layout);
     }
     
     // Timestamp aktualisieren
@@ -726,19 +727,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function saveLayout() {
         const layout = getLayoutData();
         const layoutJSON = JSON.stringify(layout);
-        localStorage.setItem('tableLayout', layoutJSON);
+        const workspace = getCurrentWorkspace();
+        localStorage.setItem(`tableLayout_${workspace}`, layoutJSON);
         
         // Timestamp aktualisieren
         updateSyncTimestamp();
         
         // Console Log
-        console.log('Layout manually saved:', layout);
+        console.log(`Layout manually saved for workspace: ${workspace}`, layout);
         
         alert('Layout gespeichert!');
     }
     
     function loadLayout() {
-        const layoutJSON = localStorage.getItem('tableLayout');
+        const workspace = getCurrentWorkspace();
+        const layoutJSON = localStorage.getItem(`tableLayout_${workspace}`);
         if (!layoutJSON) {
             alert('Kein gespeichertes Layout gefunden!');
             return;
@@ -752,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateSyncTimestamp();
             
             // Console Log
-            console.log('Layout manually loaded:', layout);
+            console.log(`Layout manually loaded for workspace: ${workspace}`, layout);
             
             alert('Layout geladen!');
         } catch (error) {
@@ -815,7 +818,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Lokalen Speicher beim ersten Laden prüfen und automatisch laden
     function checkLocalStorage() {
-        const layoutJSON = localStorage.getItem('tableLayout');
+        const workspace = getCurrentWorkspace();
+        const layoutJSON = localStorage.getItem(`tableLayout_${workspace}`);
         if (layoutJSON) {
             try {
                 const layout = JSON.parse(layoutJSON);
@@ -842,10 +846,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // JSON Export/Import Funktionen
     function exportToJSON() {
         const layout = getLayoutData();
+        const workspace = getCurrentWorkspace();
         
         const now = new Date();
         const timestamp = now.toISOString().replace(/[:.]/g, '-');
-        const filename = `tischplaner_layout_${timestamp}.json`;
+        const filename = `tischplaner_${workspace}_${timestamp}.json`;
         const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(layout, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute('href', dataStr);
@@ -854,7 +859,7 @@ document.addEventListener('DOMContentLoaded', function() {
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
         
-        console.log('Layout exported to JSON:', layout);
+        console.log(`Layout exported to JSON for workspace: ${workspace}`, layout);
     }
 
     function importFromJSON() {
@@ -874,7 +879,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     applyLayoutFromData(layout);
                     
                     // Automatisch in den Cache speichern
-                    localStorage.setItem('tableLayout', JSON.stringify(layout));
+                    const workspace = getCurrentWorkspace();
+                    localStorage.setItem(`tableLayout_${workspace}`, JSON.stringify(layout));
                     
                     // Timestamp aktualisieren
                     updateSyncTimestamp();

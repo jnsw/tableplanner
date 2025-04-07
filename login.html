@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tischplaner - Login</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 500px;
+            margin: 50px auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .hidden {
+            display: none;
+        }
+        #qrcode {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .message {
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f0f7fb;
+            border-left: 5px solid #3498db;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tischplaner Login</h1>
+        
+        <div id="login-section">
+            <div class="form-group">
+                <label for="workspace">Workspace-Name:</label>
+                <input type="text" id="workspace" placeholder="z.B. hochzeit2025">
+            </div>
+            
+            <button id="continue-btn">Weiter</button>
+            
+            <div class="instructions">
+                <p><strong>Hinweis:</strong> Gib den Namen deines Workspace ein.</p>
+                <p>Falls du einen neuen Workspace erstellst, bekommst du einen QR-Code zum Scannen mit einer Authenticator-App.</p>
+            </div>
+        </div>
+        
+        <div id="token-section" class="hidden">
+            <div class="form-group">
+                <label for="token">2FA-Code:</label>
+                <input type="text" id="token" placeholder="6-stelliger Code aus deiner Authenticator-App" maxlength="6">
+            </div>
+            
+            <button id="login-btn">Einloggen</button>
+            
+            <div class="instructions">
+                <p>Gib den 6-stelligen Code aus deiner Authenticator-App ein (Google Authenticator, Authy, etc.)</p>
+            </div>
+        </div>
+        
+        <div id="setup-section" class="hidden">
+            <h2>Neuer Workspace</h2>
+            <p>Scanne diesen QR-Code mit deiner Authenticator-App:</p>
+            
+            <div id="qrcode"></div>
+            
+            <div class="form-group">
+                <label for="setup-token">Verifiziere den Code:</label>
+                <input type="text" id="setup-token" placeholder="6-stelliger Code aus deiner App" maxlength="6">
+            </div>
+            
+            <button id="verify-btn">Verifizieren & Einrichten</button>
+            
+            <div class="instructions">
+                <p><strong>Wichtig:</strong> Bewahre diesen QR-Code auf oder mache einen Screenshot!</p>
+                <p>Du benötigst ihn, falls du deine Authenticator-App wechselst oder auf einem neuen Gerät einrichten willst.</p>
+            </div>
+        </div>
+        
+        <div id="message" class="message hidden"></div>
+    </div>
+
+    <!-- Lade die benötigten Bibliotheken -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jssha/3.2.0/sha.js"></script>
+    <script src="2fa.js"></script>
+</body>
+</html>
